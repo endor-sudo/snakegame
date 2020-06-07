@@ -18,10 +18,11 @@ class Snagame():
         self.snake=Group()
         self.last_instruction=""
         self.restart=True
-        self.speed=0.1
         self.new_crumb=""
         self.score=0
-        self.iteration=0
+        self.clock = pygame.time.Clock()
+        self.fps = 240
+        self.control_instruction=""
     def run(self):
         while True:
             #start game
@@ -33,24 +34,24 @@ class Snagame():
             #restart game
             self.restart_game()
             #endgame
-            self.endgame()
+            #self.endgame()
             #update screen
             self.update_screen()
-            clock=pygame.time.Clock()
-            clock.tick(10)
-            print(f"iteration:{self.iteration}---"+str(clock.get_fps()))
-            self.iteration+=1
+            print (f"tick={self.clock.tick(self.fps)}, fps={self.clock.get_fps()}")
+            #self.clock.tick(self.fps)
     def moving(self,screen,settings,snake):
+        k=0
+        for cell in self.snake.sprites():
+            #print(f"{k}: {cell.direction}")
+            k+=1
         #new crumb
         if not self.crumbs:
             self.crumb_spawn()
             #avoid crumb spawn on the snake
             while pygame.sprite.groupcollide(self.snake,self.crumbs,False,True):
                 self.crumb_spawn()
-        #check for eaten crumb
-        supper_time=pygame.sprite.groupcollide(self.crumbs,self.snake,True,False)
-        #initialize
-        slither_cell=""
+        
+
         #avoid turning back
         if self.last_instruction=="up" and self.instruction=="down":
             self.instruction="up"
@@ -61,40 +62,110 @@ class Snagame():
             self.instruction="down"
         elif self.last_instruction=="left" and self.instruction=="right":
             self.instruction="left"
+
+
         if self.instruction=="halt":
             #logging.debug('instruction:'+str(self.instruction)+"---last_instruction:"+str(self.last_instruction))
             pass
         #movement
         else:
-            if self.instruction=="up":
-                slither_cell=Snake(screen,settings,snake.sprites()[-1].rect.left,snake.sprites()[-1].rect.top-20)
-                if slither_cell.rect.bottom==0:
-                    self.restart=True
-            elif self.instruction=="right":
-                slither_cell=Snake(screen,settings,snake.sprites()[-1].rect.left+20,snake.sprites()[-1].rect.top)
-                if slither_cell.rect.left==settings.screen_width:
-                    self.restart=True
-            elif self.instruction=="down":
-                slither_cell=Snake(screen,settings,snake.sprites()[-1].rect.left,snake.sprites()[-1].rect.top+20)
-                if slither_cell.rect.top==settings.screen_height:
-                    self.restart=True
-            elif self.instruction=="left":
-                slither_cell=Snake(screen,settings,snake.sprites()[-1].rect.left-20,snake.sprites()[-1].rect.top)
-                if slither_cell.rect.right==0:
-                    self.restart=True
-            if slither_cell!="":
-                self.snake.add(slither_cell)
-                if supper_time:
-                    self.score+=1
-                    logging.debug(str(self.score))
+            self.control_instruction=self.instruction
+            #turning only when supposed to
+            if (self.last_instruction=="left" or self.last_instruction=="right") and (self.instruction=="up" or self.instruction=="down"):
+                if self.snake.sprites()[-1].rect.left%20==0:
+                    print(self.snake.sprites()[-1].rect.left%20)
                 else:
-                    snake.sprites()[0].kill()
-            #trigger over on autocollisions
-            for cell in snake.sprites()[0:-2]:
-                if cell.rect.collidepoint(slither_cell.rect.centerx,slither_cell.rect.centery):
-                    self.restart=True
+                    self.instruction=self.last_instruction
+            if (self.last_instruction=="up" or self.last_instruction=="down") and (self.instruction=="left" or self.instruction=="right"):
+                if self.snake.sprites()[-1].rect.top%20==0:
+                    print(self.snake.sprites()[-1].rect.top%20)
+                else:
+                    self.instruction=self.last_instruction
+
+            if self.snake.sprites()[-1].rect.left%20==0 and self.snake.sprites()[-1].rect.top%20==0:
+                    #give the lead cell its direction        
+                    nextcell_direction=self.instruction
+                    #pass on directions from one cell to another
+                    for cell in reversed(self.snake.sprites()):
+                        thiscell_direction=cell.direction
+                        cell.direction=nextcell_direction
+                        nextcell_direction=thiscell_direction
+
+            #for each cell make a movement according to directions
+            for cell in self.snake.sprites():
+                if cell.direction=="up":
+                    cell.rect.top-=1
+                    if self.snake.sprites()[-1].rect.bottom<0:
+                        self.restart=True
+                elif cell.direction=="right":
+                    cell.rect.left+=1
+                    if self.snake.sprites()[-1].rect.left==settings.screen_width:
+                        self.restart=True
+                elif cell.direction=="down":
+                    cell.rect.top+=1
+                    if self.snake.sprites()[-1].rect.top==settings.screen_height:
+                        self.restart=True
+                elif cell.direction=="left":
+                    cell.rect.left-=1
+                    if self.snake.sprites()[-1].rect.right==0:
+                        self.restart=True
+            
+
+            
             #set comparison for next iteration
             self.last_instruction=self.instruction
+
+            supper_time=False
+            
+            #check for eaten crumb
+            if self.snake.sprites()[-1].rect.centerx==self.new_crumb.rect.centerx and self.snake.sprites()[-1].rect.centery==self.new_crumb.rect.centery:
+                supper_time=True
+
+            
+            if supper_time:
+                for crumb in self.crumbs:
+                    crumb.kill()
+                print("supper time")
+                self.score+=1
+                if self.snake.sprites()[0].direction=="up":
+                    new_cell=Snake(screen, settings, self.snake.sprites()[0].rect.left, self.snake.sprites()[0].rect.top+20,"up")
+                    mediumgroup=Group()
+                    mediumgroup.add(new_cell)
+                    for cell in self.snake.sprites():
+                        mediumgroup.add(cell)
+                    self.snake=mediumgroup
+                elif self.snake.sprites()[0].direction=="down":
+                    new_cell=Snake(screen, settings, self.snake.sprites()[0].rect.left, self.snake.sprites()[0].rect.top-20,"down")
+                    mediumgroup=Group()
+                    mediumgroup.add(new_cell)
+                    for cell in self.snake.sprites():
+                        mediumgroup.add(cell)
+                    self.snake=mediumgroup
+                elif self.snake.sprites()[0].direction=="left":
+                    new_cell=Snake(screen, settings, self.snake.sprites()[0].rect.left+20, self.snake.sprites()[0].rect.top,"left")
+                    mediumgroup=Group()
+                    mediumgroup.add(new_cell)
+                    for cell in self.snake.sprites():
+                        mediumgroup.add(cell)
+                    self.snake=mediumgroup
+                elif self.snake.sprites()[0].direction=="right":
+                    new_cell=Snake(screen, settings, self.snake.sprites()[0].rect.left-20, self.snake.sprites()[0].rect.top,"right")
+                    mediumgroup=Group()
+                    mediumgroup.add(new_cell)
+                    for cell in self.snake.sprites():
+                        mediumgroup.add(cell)
+                    self.snake=mediumgroup
+                supper_time=False
+                
+            
+            #trigger over on autocollisions
+            for cell in self.snake.sprites()[:-4]:
+                if cell.rect.collidepoint(self.snake.sprites()[-1].rect.centerx, self.snake.sprites()[-1].rect.centery):
+                    self.restart=True
+            
+            #to check if it is ok to turn on next iteration
+            self.instruction=self.control_instruction
+
     def listen_for_commands(self):
         for event in pygame.event.get():
             if event.type==pygame.QUIT:
@@ -120,7 +191,7 @@ class Snagame():
             cell.draw_snake()
         pygame.display.flip()
     def snake_head_spawn(self):
-        snake_head=Snake(self.screen,self.settings,self.settings.startx,self.settings.starty)
+        snake_head=Snake(self.screen,self.settings,self.settings.startx,self.settings.starty, "halt")
         self.snake.add(snake_head)
     def crumb_spawn(self):
         self.new_crumb=Crumbs(self.screen,self.settings)

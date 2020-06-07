@@ -4,17 +4,17 @@ import logging
 
 class Settings():
     def __init__(self):
-        self.screen_width = 800 
+        self.screen_width = 800
         self.screen_height = self.screen_width
         self.bg_color = (0,0,0)
         self.square_size=20
-        self.startx=380
-        self.starty=380
+        self.startx=180
+        self.starty=180
         self.snake_color=(200,0,0)
         self.crumb_color=(0,200,0)
 
 class Snake(pygame.sprite.Sprite):
-    def __init__(self,screen,settings,cellx,celly):
+    def __init__(self,screen,settings,cellx,celly, direction):
         super(Snake,self).__init__()
         self.screen=screen
         self.rect=pygame.Rect(cellx,celly,settings.square_size,settings.square_size)
@@ -24,6 +24,7 @@ class Snake(pygame.sprite.Sprite):
         self.moving_right=False
         self.moving_down=False
         self.moving_left=False
+        self.direction=direction
     def draw_snake(self):
         pygame.draw.rect(self.screen, self.settings.snake_color, self.rect)
 
