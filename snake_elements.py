@@ -1,17 +1,17 @@
-import pygame
-import random
-import logging
+import pygame, random, logging
 
 class Settings():
     def __init__(self):
         self.screen_width = 800
         self.screen_height = self.screen_width
         self.bg_color = (0,0,0)
-        self.square_size=20
-        self.startx=180
-        self.starty=180
+        self.square_size=20 #self.screen_width divided by self.square_size has to be integer
+        self.startx=self.screen_width/2-self.square_size
+        self.starty=self.startx
         self.snake_color=(200,0,0)
         self.crumb_color=(0,200,0)
+        self.speed=5
+        self.fps=60
 
 class Snake(pygame.sprite.Sprite):
     def __init__(self,screen,settings,cellx,celly, direction):
