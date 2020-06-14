@@ -78,7 +78,7 @@ class Snagame():
             for cell in self.snake.sprites():
                 if cell.direction=="up":
                     cell.rect.top-=settings.speed
-                    if self.snake.sprites()[-1].rect.bottom<0:
+                    if self.snake.sprites()[-1].rect.bottom==0:
                         self.restart=True
                 elif cell.direction=="right":
                     cell.rect.left+=settings.speed
